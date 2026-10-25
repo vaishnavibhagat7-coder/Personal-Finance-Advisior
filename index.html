@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}FinWise AI - Intelligent Personal Finance Management & Advisory{% endblock %}
+
+{% block public_content %}
+<div class="hero-gradient min-vh-100 d-flex flex-column justify-content-between">
+  <!-- Public Navigation -->
+  <nav class="navbar navbar-expand-lg border-bottom bg-body py-3">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-4 text-primary" href="{{ url_for('auth.index') }}">
+        <i class="bi bi-wallet2 text-primary"></i>
+        <span>FinWise AI</span>
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary px-4 fw-medium">Sign In</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary px-4 fw-medium">Get Started Free</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="py-5 my-auto">
+    <div class="container text-center py-4">
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-primary-subtle text-primary border border-primary-subtle mb-4">
+        <i class="bi bi-stars"></i>
+        <span class="small fw-semibold">Next-Gen AI Financial Advisor & Budget Intelligence</span>
+      </div>
+      
+      <h1 class="display-4 fw-extrabold mb-3 tracking-tight">
+        Your Money. Your Goals. <br>
+        <span class="text-primary">Your Future.</span>
+      </h1>
+      
+      <p class="lead text-muted mx-auto mb-4" style="max-width: 680px;">
+        FinWise AI is a complete full-stack personal finance web application featuring real-time expense tracking,
+        intelligent budget thresholds, savings goal milestone tracking, and Google Gemini AI-powered financial advisory.
+      </p>
+
+      <div class="d-flex justify-content-center gap-3 flex-wrap mb-5">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4 shadow-sm">
+          <i class="bi bi-rocket-takeoff me-2"></i>Create Free Account
+        </a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary btn-lg px-4">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Sign In to Demo
+        </a>
+      </div>
+
+      <!-- Demo Account Quick Credential Box -->
+      <div class="card mx-auto shadow-sm border-0 p-3 bg-body-tertiary mb-5" style="max-width: 520px; border-radius: 12px;">
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="text-start">
+            <span class="badge bg-success-subtle text-success mb-1">Demonstration Ready</span>
+            <div class="small fw-bold">demo@finwise.ai</div>
+            <div class="small text-muted">Password: <code>Demo@12345</code></div>
+          </div>
+          <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-outline-primary">Quick Sign In</a>
+        </div>
+      </div>
+
+      <!-- Feature Grid -->
+      <div class="row g-4 text-start mt-2">
+        <div class="col-md-4">
+          <div class="card h-100 p-4 border shadow-sm">
+            <div class="stat-icon bg-success-subtle text-success mb-3">
+              <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Income & Expense Tracking</h5>
+            <p class="text-muted small mb-0">Record multiple income streams, categorize daily expenses, filter transactions, and inspect weekly and monthly spending trends with Decimal arithmetic precision.</p>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card h-100 p-4 border shadow-sm">
+            <div class="stat-icon bg-warning-subtle text-warning mb-3">
+              <i class="bi bi-pie-chart-fill"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Budget Engine & Overspending Alerts</h5>
+            <p class="text-muted small mb-0">Set category limits with 4-tier health states (Normal, Approaching, Near Limit, Overspending). Auto-generate suggested allocations tailored to your occupation.</p>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card h-100 p-4 border shadow-sm">
+            <div class="stat-icon bg-primary-subtle text-primary mb-3">
+              <i class="bi bi-stars"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Gemini AI Financial Advisor</h5>
+            <p class="text-muted small mb-0">Personalized spending habit analysis, emergency fund milestones, and interactive conversational financial Q&A grounded in your real transaction data with robust offline fallback.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-top py-4 bg-body text-center text-muted small">
+    <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+      <div>FinWise AI &bull; Personal Finance Advisor Bot &bull; College Engineering Project</div>
+      <div>Designed with Python, Flask, SQLAlchemy & Google Gen AI</div>
+    </div>
+  </footer>
+</div>
+{% endblock %}

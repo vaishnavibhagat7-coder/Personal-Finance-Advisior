@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}AI Financial Advisor - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h2 class="fw-bold mb-1">AI Financial Advisor</h2>
+        {% if is_live_ai %}
+          <span class="badge bg-primary d-flex align-items-center gap-1"><i class="bi bi-stars"></i> Gemini 2.5 Active</span>
+        {% else %}
+          <span class="badge bg-secondary d-flex align-items-center gap-1"><i class="bi bi-cpu"></i> FinWise Rule Engine</span>
+        {% endif %}
+      </div>
+      <p class="text-muted small mb-0">Context-aware financial advisory tailored to your <strong>{{ financial_data.occupation }}</strong> profile.</p>
+    </div>
+
+    <!-- Month Picker & Re-analyze Button -->
+    <div class="d-flex align-items-center gap-2">
+      <form method="GET" action="{{ url_for('advisor.index') }}" class="d-flex gap-2">
+        <select name="month" class="form-select form-select-sm auto-submit-period">
+          {% for m_num, m_name in month_names %}
+            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="year" class="form-select form-select-sm auto-submit-period">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <form method="POST" action="{{ url_for('advisor.refresh') }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="month" value="{{ selected_month }}">
+        <input type="hidden" name="year" value="{{ selected_year }}">
+        <button type="submit" class="btn btn-sm btn-outline-primary" title="Re-analyze with latest transactions">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- External AI Disclosure / Fallback Notification Banner -->
+  {% if not is_live_ai %}
+    <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-4" role="alert">
+      <i class="bi bi-info-circle-fill fs-5 text-warning flex-shrink-0"></i>
+      <div>
+        <strong>Rule-Based Advisory Active:</strong> <code>GEMINI_API_KEY</code> is not configured or offline.
+        The advisory engine is computing deterministic health scores, overspending alerts, and habit recommendations locally.
+        To activate live Gemini generation, configure your key in <code>.env</code>.
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="row g-4 mb-4">
+    <!-- Left Column: AI Advisor Analysis Report -->
+    <div class="col-lg-7">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-stars text-primary fs-5"></i>
+            <span class="fw-bold">Advisory Report & Health Rating</span>
+          </div>
+          <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill">
+            Health Score: {{ health_score }}/100
+          </span>
+        </div>
+
+        <div class="card-body p-4 overflow-auto" style="max-height: 600px;">
+          <!-- Financial Snapshot Pills -->
+          <div class="row g-2 mb-4">
+            <div class="col-sm-4">
+              <div class="border rounded p-2 text-center bg-body-tertiary">
+                <div class="text-muted small">Total Income</div>
+                <div class="fw-bold text-success">{{ financial_data.total_income | currency }}</div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="border rounded p-2 text-center bg-body-tertiary">
+                <div class="text-muted small">Total Spent</div>
+                <div class="fw-bold text-danger">{{ financial_data.total_expenses | currency }}</div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="border rounded p-2 text-center bg-body-tertiary">
+                <div class="text-muted small">Savings Rate</div>
+                <div class="fw-bold text-info">{{ financial_data.savings_rate | percentage }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advice Content Rendered -->
+          <div class="ai-report-content lh-lg">
+            {{ advice_text | markdown | safe }}
+          </div>
+        </div>
+
+        <div class="card-footer small text-muted bg-transparent">
+          <i class="bi bi-shield-check me-1"></i> Data aggregated locally on server. Financial summaries strictly preserve user privacy.
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Interactive Financial Q&A Chat -->
+    <div class="col-lg-5">
+      <div class="card h-100 shadow-sm d-flex flex-column">
+        <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-chat-dots-fill text-primary"></i>
+            <span class="fw-bold">Ask FinWise AI</span>
+          </div>
+          <span class="small text-muted">Grounded in your {{ selected_month_name }} data</span>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="chat-window border-0 rounded-0 flex-grow-1">
+          <div class="chat-messages" id="advisor-chat-messages">
+            <!-- AI Welcome Bubble -->
+            <div class="chat-bubble bubble-ai">
+              <div class="fw-semibold small text-primary mb-1"><i class="bi bi-stars"></i> FinWise Assistant</div>
+              Hello {{ current_user.full_name }}! I am your AI financial companion for <strong>{{ selected_month_name }} {{ selected_year }}</strong>.
+              You can ask me questions about your spending patterns, budgeting limits, or how to save for a purchase:
+              <ul class="mb-0 mt-2 ps-3 small text-muted">
+                <li>"Where did I spend the most this month?"</li>
+                <li>"Can I afford to buy a ₹40,000 gadget right now?"</li>
+                <li>"How do I reach my savings target faster?"</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <div class="chat-input-bar">
+            <form id="advisor-chat-form">
+              <input type="hidden" id="advisor-year" value="{{ selected_year }}">
+              <input type="hidden" id="advisor-month" value="{{ selected_month }}">
+              <div class="input-group">
+                <input type="text" id="advisor-chat-input" class="form-control" placeholder="Ask a question about your finances..." autocomplete="off" required maxlength="500">
+                <button type="submit" class="btn btn-primary" id="advisor-chat-send-btn">
+                  <i class="bi bi-send-fill"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

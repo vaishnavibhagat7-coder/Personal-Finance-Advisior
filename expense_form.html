@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 680px;">
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{{ url_for('finance.expense_list') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <h3 class="fw-bold mb-0">{{ title }}</h3>
+  </div>
+
+  <div class="card shadow-sm p-4">
+    <form method="POST">
+      {{ form.hidden_tag() }}
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          {{ form.category_id.label(class="form-label fw-semibold small") }}
+          {{ form.category_id(class="form-select") }}
+          {% for error in form.category_id.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="col-md-6">
+          {{ form.payment_method.label(class="form-label fw-semibold small") }}
+          {{ form.payment_method(class="form-select") }}
+          {% for error in form.payment_method.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          {{ form.amount.label(class="form-label fw-semibold small") }}
+          <div class="input-group">
+            <span class="input-group-text">{{ current_user.currency }}</span>
+            {{ form.amount(class="form-control" + (" is-invalid" if form.amount.errors else ""), placeholder="0.00", step="0.01") }}
+          </div>
+          {% for error in form.amount.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="col-md-6">
+          {{ form.date.label(class="form-label fw-semibold small") }}
+          {{ form.date(class="form-control" + (" is-invalid" if form.date.errors else "")) }}
+          {% for error in form.date.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        {{ form.merchant.label(class="form-label fw-semibold small") }}
+        {{ form.merchant(class="form-control" + (" is-invalid" if form.merchant.errors else ""), placeholder="e.g. Swiggy, Amazon, Uber, Reliance Fresh") }}
+        {% for error in form.merchant.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="mb-4">
+        {{ form.notes.label(class="form-label fw-semibold small") }}
+        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows="2", placeholder="Optional details, item list, or tags") }}
+        {% for error in form.notes.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <a href="{{ url_for('finance.expense_list') }}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-danger px-4 fw-semibold">Save Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

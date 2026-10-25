@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 640px;">
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{{ url_for('finance.income_list') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <h3 class="fw-bold mb-0">{{ title }}</h3>
+  </div>
+
+  <div class="card shadow-sm p-4">
+    <form method="POST">
+      {{ form.hidden_tag() }}
+
+      <div class="mb-3">
+        {{ form.source.label(class="form-label fw-semibold small") }}
+        {{ form.source(class="form-select") }}
+        {% for error in form.source.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          {{ form.amount.label(class="form-label fw-semibold small") }}
+          <div class="input-group">
+            <span class="input-group-text">{{ current_user.currency }}</span>
+            {{ form.amount(class="form-control" + (" is-invalid" if form.amount.errors else ""), placeholder="0.00", step="0.01") }}
+          </div>
+          {% for error in form.amount.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="col-md-6">
+          {{ form.date.label(class="form-label fw-semibold small") }}
+          {{ form.date(class="form-control" + (" is-invalid" if form.date.errors else "")) }}
+          {% for error in form.date.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-4">
+        {{ form.description.label(class="form-label fw-semibold small") }}
+        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), placeholder="e.g. Monthly salary, bonus, freelance client") }}
+        {% for error in form.description.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <a href="{{ url_for('finance.income_list') }}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-success px-4 fw-semibold">Save Income</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

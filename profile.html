@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile & Financial Settings - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0" style="max-width: 900px;">
+  <div class="mb-4">
+    <h2 class="fw-bold mb-1">Financial Profile & Settings</h2>
+    <p class="text-muted small mb-0">Configure your occupation, currency formatting, savings targets, and priorities used by the AI advisor.</p>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Profile & Financial Configuration -->
+    <div class="col-lg-8">
+      <div class="card p-4 shadow-sm">
+        <h5 class="fw-bold mb-3"><i class="bi bi-person-gear me-1"></i> Profile & Advisory Context</h5>
+        <form method="POST" action="{{ url_for('profile.index') }}">
+          {{ profile_form.hidden_tag() }}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              {{ profile_form.full_name.label(class="form-label fw-semibold small") }}
+              {{ profile_form.full_name(class="form-control" + (" is-invalid" if profile_form.full_name.errors else "")) }}
+              {% for error in profile_form.full_name.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="col-md-6">
+              {{ profile_form.email.label(class="form-label fw-semibold small") }}
+              {{ profile_form.email(class="form-control" + (" is-invalid" if profile_form.email.errors else "")) }}
+              {% for error in profile_form.email.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              {{ profile_form.occupation.label(class="form-label fw-semibold small") }}
+              {{ profile_form.occupation(class="form-select") }}
+              <div class="form-text small">Guides budget allocation percentages & AI tone</div>
+            </div>
+
+            <div class="col-md-6">
+              {{ profile_form.currency.label(class="form-label fw-semibold small") }}
+              {{ profile_form.currency(class="form-select") }}
+              <div class="form-text small">Default monetary symbol across dashboard</div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              {{ profile_form.monthly_income_target.label(class="form-label fw-semibold small") }}
+              <div class="input-group">
+                <span class="input-group-text">{{ current_user.currency }}</span>
+                {{ profile_form.monthly_income_target(class="form-control", step="0.01") }}
+              </div>
+              <div class="form-text small">Baseline monthly expected revenue</div>
+            </div>
+
+            <div class="col-md-6">
+              {{ profile_form.monthly_savings_target.label(class="form-label fw-semibold small") }}
+              <div class="input-group">
+                <span class="input-group-text">{{ current_user.currency }}</span>
+                {{ profile_form.monthly_savings_target(class="form-control", step="0.01") }}
+              </div>
+              <div class="form-text small">Target monthly savings amount</div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            {{ profile_form.financial_priorities.label(class="form-label fw-semibold small") }}
+            {{ profile_form.financial_priorities(class="form-control", rows="2", placeholder="e.g. Build 6-month emergency cushion, pay down education loan, optimize dining costs") }}
+            <div class="form-text small">AI Financial Advisor analyzes these goals in every advisory session</div>
+          </div>
+
+          <div class="mb-4">
+            {{ profile_form.financial_notes.label(class="form-label fw-semibold small") }}
+            {{ profile_form.financial_notes(class="form-control", rows="3", placeholder="e.g. Preparing for graduate school next fall, planning a laptop upgrade in Q3") }}
+            <div class="form-text small">Personal background context for conversational AI assistance</div>
+          </div>
+
+          <button type="submit" name="submit_profile" class="btn btn-primary px-4 fw-semibold">
+            Save Financial Settings
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right Column: Security / Change Password -->
+    <div class="col-lg-4">
+      <div class="card p-4 shadow-sm mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-shield-lock me-1"></i> Change Password</h5>
+        <form method="POST" action="{{ url_for('profile.change_password') }}">
+          {{ password_form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ password_form.current_password.label(class="form-label fw-semibold small") }}
+            {{ password_form.current_password(class="form-control" + (" is-invalid" if password_form.current_password.errors else ""), placeholder="••••••••") }}
+            {% for error in password_form.current_password.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ password_form.new_password.label(class="form-label fw-semibold small") }}
+            {{ password_form.new_password(class="form-control" + (" is-invalid" if password_form.new_password.errors else ""), placeholder="••••••••") }}
+            {% for error in password_form.new_password.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-4">
+            {{ password_form.confirm_new_password.label(class="form-label fw-semibold small") }}
+            {{ password_form.confirm_new_password(class="form-control" + (" is-invalid" if password_form.confirm_new_password.errors else ""), placeholder="••••••••") }}
+            {% for error in password_form.confirm_new_password.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-outline-danger w-100 fw-semibold">Update Password</button>
+        </form>
+      </div>
+
+      <!-- Demonstration Info Card -->
+      <div class="card p-3 bg-body-tertiary border">
+        <h6 class="fw-bold mb-1 text-primary"><i class="bi bi-info-circle me-1"></i> Demonstration Mode</h6>
+        <p class="small text-muted mb-2">
+          To reset sample data for the demo user without modifying other accounts, execute:
+        </p>
+        <code>python seed_demo.py</code>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

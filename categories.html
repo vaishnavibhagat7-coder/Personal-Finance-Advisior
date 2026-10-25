@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Categories - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Expense Categories</h2>
+      <p class="text-muted small mb-0">System default categories and your personalized custom tags.</p>
+    </div>
+    <a href="{{ url_for('finance.expense_list') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back to Expenses
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Add Custom Category Form -->
+    <div class="col-md-5">
+      <div class="card p-4 shadow-sm">
+        <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-1"></i> Add Custom Category</h5>
+        <form method="POST">
+          {{ form.hidden_tag() }}
+          
+          <div class="mb-3">
+            {{ form.name.label(class="form-label fw-semibold small") }}
+            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g. Gym & Fitness, Pet Care, Freelance SaaS") }}
+            {% for error in form.name.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-4">
+            {{ form.color.label(class="form-label fw-semibold small") }}
+            <div class="d-flex align-items-center gap-2">
+              {{ form.color(class="form-control form-control-color", type="color") }}
+              <span class="small text-muted">Select distinct color tag for dashboard doughnut charts</span>
+            </div>
+            {% for error in form.color.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">Create Category</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Category List -->
+    <div class="col-md-7">
+      <div class="card shadow-sm">
+        <div class="card-header fw-bold">Active Categories</div>
+        <div class="table-responsive">
+          <table class="table table-finwise table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Category Name</th>
+                <th>Type</th>
+                <th>Color</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cat in categories %}
+                <tr>
+                  <td>
+                    <span class="badge" style="background-color: {{ cat.color }}; color: #ffffff;">
+                      <i class="bi {{ cat.icon }} me-1"></i> {{ cat.name }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if cat.is_default %}
+                      <span class="badge bg-secondary-subtle text-secondary">System Default</span>
+                    {% else %}
+                      <span class="badge bg-primary-subtle text-primary">Custom Tag</span>
+                    {% endif %}
+                  </td>
+                  <td><code>{{ cat.color }}</code></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

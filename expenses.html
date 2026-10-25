@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Expenses & Transactions - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Expense Tracking</h2>
+      <p class="text-muted small mb-0">Record, filter, and inspect daily expenditures with precision.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('finance.category_list') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-tags"></i> Custom Categories
+      </a>
+      <a href="{{ url_for('finance.expense_add') }}" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
+        <i class="bi bi-plus-lg"></i> Add Expense
+      </a>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3">
+      <div class="card stat-card stat-expenses">
+        <span class="stat-label">Month Total Outflow</span>
+        <div class="stat-value text-danger">{{ total_spent | currency }}</div>
+        <div class="stat-subtext text-muted">{{ selected_month_name }} {{ selected_year }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <div class="card stat-card">
+        <span class="stat-label">Last 7 Days Burn</span>
+        <div class="stat-value text-warning">{{ weekly_spent | currency }}</div>
+        <div class="stat-subtext text-muted">Recent weekly velocity</div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 p-3">
+        <div class="fw-semibold small text-muted text-uppercase mb-2">Category Spending Distribution</div>
+        <div class="d-flex flex-wrap gap-2 overflow-auto" style="max-height: 80px;">
+          {% if category_summaries %}
+            {% for cat_name, amt in category_summaries.items() %}
+              <div class="border rounded px-2 py-1 bg-body-tertiary small">
+                <span class="fw-bold">{{ cat_name }}:</span> <span class="text-danger fw-semibold">{{ amt | currency }}</span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <span class="text-muted small">No expenses for this period.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filters Toolbar -->
+  <div class="card p-3 mb-4">
+    <form method="GET" action="{{ url_for('finance.expense_list') }}" class="row g-2 align-items-center">
+      <!-- Search Keyword -->
+      <div class="col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Search merchant or notes..." value="{{ search }}">
+        </div>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="col-md-3">
+        <select name="category_id" class="form-select form-select-sm">
+          <option value="0">All Categories</option>
+          {% for c in categories %}
+            <option value="{{ c.id }}" {% if category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Payment Method Filter -->
+      <div class="col-md-2">
+        <select name="payment_method" class="form-select form-select-sm">
+          <option value="">All Payments</option>
+          <option value="UPI" {% if payment_method == 'UPI' %}selected{% endif %}>UPI</option>
+          <option value="Credit Card" {% if payment_method == 'Credit Card' %}selected{% endif %}>Credit Card</option>
+          <option value="Debit Card" {% if payment_method == 'Debit Card' %}selected{% endif %}>Debit Card</option>
+          <option value="Cash" {% if payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+          <option value="Net Banking" {% if payment_method == 'Net Banking' %}selected{% endif %}>Net Banking</option>
+        </select>
+      </div>
+
+      <!-- Month & Year -->
+      <div class="col-md-2 d-flex gap-1">
+        <select name="month" class="form-select form-select-sm">
+          {% for m_num, m_name in month_names %}
+            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="year" class="form-select form-select-sm">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Submit & Reset -->
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+        <a href="{{ url_for('finance.expense_list') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Expenses Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-bold">Transactions</span>
+      <span class="badge bg-secondary">{{ pagination.total }} Records</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-finwise table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Merchant / Payee</th>
+            <th>Notes</th>
+            <th>Payment Method</th>
+            <th class="text-end">Amount</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if expenses %}
+            {% for exp in expenses %}
+              <tr>
+                <td class="text-muted small">{{ exp.date.strftime('%b %d, %Y') }}</td>
+                <td>
+                  <span class="badge" style="background-color: {{ exp.category.color if exp.category else '#6366f1' }}; color: #ffffff;">
+                    {{ exp.category.name if exp.category else 'Other' }}
+                  </span>
+                </td>
+                <td class="fw-medium">{{ exp.merchant or '-' }}</td>
+                <td class="small text-muted text-truncate" style="max-width: 200px;">{{ exp.notes or '-' }}</td>
+                <td><span class="badge bg-body-secondary text-body">{{ exp.payment_method }}</span></td>
+                <td class="text-end fw-bold text-danger">-{{ exp.amount | currency }}</td>
+                <td class="text-end">
+                  <a href="{{ url_for('finance.expense_edit', expense_id=exp.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form method="POST" action="{{ url_for('finance.expense_delete', expense_id=exp.id) }}" class="d-inline" onsubmit="return confirm('Delete this expense?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-receipt fs-2 opacity-50 mb-2 d-block"></i>
+                <p class="mb-2">No expense transactions found matching your criteria.</p>
+                <a href="{{ url_for('finance.expense_add') }}" class="btn btn-sm btn-danger">Record New Expense</a>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+        <ul class="pagination pagination-sm mb-0">
+          {% if pagination.has_prev %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('finance.expense_list', page=pagination.prev_num, month=selected_month, year=selected_year, category_id=category_id, payment_method=payment_method, q=search) }}">&laquo;</a>
+            </li>
+          {% endif %}
+          {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+              <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('finance.expense_list', page=p, month=selected_month, year=selected_year, category_id=category_id, payment_method=payment_method, q=search) }}">{{ p }}</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% endif %}
+          {% endfor %}
+          {% if pagination.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('finance.expense_list', page=pagination.next_num, month=selected_month, year=selected_year, category_id=category_id, payment_method=payment_method, q=search) }}">&raquo;</a>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

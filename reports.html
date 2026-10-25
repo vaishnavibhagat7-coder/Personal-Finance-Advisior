@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Financial Statement & Analytics - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <!-- Report Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Financial Statement & Report</h2>
+      <p class="text-muted small mb-0">Certified audit summary and category performance for <strong>{{ selected_month_name }} {{ selected_year }}</strong>.</p>
+    </div>
+
+    <!-- Actions: Month Picker, Print, Export CSV -->
+    <div class="d-flex flex-wrap align-items-center gap-2 no-print">
+      <form method="GET" action="{{ url_for('reports.index') }}" class="d-flex gap-2">
+        <select name="month" class="form-select form-select-sm auto-submit-period">
+          {% for m_num, m_name in month_names %}
+            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="year" class="form-select form-select-sm auto-submit-period">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print();">
+        <i class="bi bi-printer me-1"></i> Print
+      </button>
+
+      <a href="{{ url_for('reports.export_transactions_csv', month=selected_month, year=selected_year) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-filetype-csv me-1"></i> Transactions CSV
+      </a>
+
+      <a href="{{ url_for('reports.export_summary_csv', month=selected_month, year=selected_year) }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-download me-1"></i> Summary CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Printable Report Document Header -->
+  <div class="card p-4 mb-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+      <div>
+        <h4 class="fw-bold text-primary mb-1">FinWise AI &bull; Monthly Financial Statement</h4>
+        <div class="text-muted small">Portfolio Account: <strong>{{ current_user.full_name }}</strong> ({{ current_user.occupation }})</div>
+      </div>
+      <div class="text-end">
+        <span class="badge bg-secondary-subtle text-secondary fs-6">{{ selected_month_name }} {{ selected_year }}</span>
+        <div class="text-muted small mt-1">Generated: {{ selected_month_name }} 2026</div>
+      </div>
+    </div>
+
+    <!-- Month-Over-Month Comparison Highlights -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="border rounded p-3 bg-body-tertiary">
+          <div class="text-muted small">Total Monthly Income</div>
+          <div class="fs-4 fw-bold text-success">{{ data.total_income | currency }}</div>
+          {% if income_change_pct is not none %}
+            <div class="small {% if income_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+              <i class="bi {% if income_change >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+              {{ income_change_pct | percentage }} vs prev month
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="border rounded p-3 bg-body-tertiary">
+          <div class="text-muted small">Total Monthly Expenses</div>
+          <div class="fs-4 fw-bold text-danger">{{ data.total_expenses | currency }}</div>
+          {% if expense_change_pct is not none %}
+            <div class="small {% if expense_change <= 0 %}text-success{% else %}text-danger{% endif %}">
+              <i class="bi {% if expense_change <= 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+              {{ expense_change_pct | percentage }} vs prev month
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="border rounded p-3 bg-body-tertiary">
+          <div class="text-muted small">Net Savings / Surplus</div>
+          <div class="fs-4 fw-bold {% if data.net_balance >= 0 %}text-primary{% else %}text-danger{% endif %}">
+            {{ data.net_balance | currency }}
+          </div>
+          <div class="small text-muted">Savings Rate: {{ data.savings_rate | percentage }}</div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="border rounded p-3 bg-body-tertiary">
+          <div class="text-muted small">Top Spending Category</div>
+          <div class="fs-5 fw-bold text-truncate">{{ top_category.category if top_category else 'None' }}</div>
+          <div class="small text-muted">
+            {% if top_category %}
+              {{ top_category.amount | currency }} ({{ top_category.percentage | percentage }})
+            {% else %}
+              No expenses recorded
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Expense Breakdown Table -->
+    <h5 class="fw-bold mb-3">1. Category Expense Breakdown</h5>
+    <div class="table-responsive mb-4">
+      <table class="table table-bordered table-finwise table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Expense Category</th>
+            <th class="text-end">Amount Spent</th>
+            <th class="text-end">Share of Total Outflow</th>
+            <th>Proportional Distribution</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if data.category_breakdown %}
+            {% for cat in data.category_breakdown %}
+              <tr>
+                <td class="fw-semibold">{{ cat.category }}</td>
+                <td class="text-end fw-bold text-danger">{{ cat.amount | currency }}</td>
+                <td class="text-end">{{ cat.percentage | percentage }}</td>
+                <td style="width: 30%;">
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ cat.percentage }}%;"></div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" class="text-center py-3 text-muted">No expenses recorded for this month.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Budget Performance Table -->
+    <h5 class="fw-bold mb-3">2. Category Budget Performance</h5>
+    <div class="table-responsive mb-4">
+      <table class="table table-bordered table-finwise table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Category</th>
+            <th class="text-end">Budget Limit</th>
+            <th class="text-end">Actual Spent</th>
+            <th class="text-end">Remaining</th>
+            <th class="text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if data.budgets %}
+            {% for b in data.budgets %}
+              <tr>
+                <td class="fw-semibold">{{ b.category }}</td>
+                <td class="text-end">{{ b.limit | currency }}</td>
+                <td class="text-end text-danger">{{ b.spent | currency }}</td>
+                <td class="text-end {% if b.remaining >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ b.remaining | currency }}
+                </td>
+                <td class="text-center">
+                  <span class="badge {% if b.status == 'Normal' %}bg-success{% elif b.status == 'Approaching Limit' %}bg-info{% elif b.status == 'Near Limit' %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ b.status }}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center py-3 text-muted">No budget limits configured for this month.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Savings Goals Status Table -->
+    <h5 class="fw-bold mb-3">3. Savings Goals & Emergency Reserve Milestones</h5>
+    <div class="table-responsive mb-4">
+      <table class="table table-bordered table-finwise table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Goal Name</th>
+            <th class="text-end">Target Value</th>
+            <th class="text-end">Current Saved</th>
+            <th class="text-end">Completion</th>
+            <th class="text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if data.goals %}
+            {% for g in data.goals %}
+              <tr>
+                <td class="fw-semibold">{{ g.name }}</td>
+                <td class="text-end">{{ g.target | currency }}</td>
+                <td class="text-end text-success fw-bold">{{ g.saved | currency }}</td>
+                <td class="text-end">{{ g.progress_pct | percentage }}</td>
+                <td class="text-center"><span class="badge bg-secondary">{{ g.status }}</span></td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center py-3 text-muted">No savings goals created yet.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AI Advisor Monthly Observations -->
+    <h5 class="fw-bold mb-3">4. Advisory Observations</h5>
+    <div class="p-3 border rounded bg-body-tertiary">
+      <div class="lh-base small">
+        {{ ai_insight | markdown | safe }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

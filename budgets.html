@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Budget Planning Engine - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Budget Planning Engine</h2>
+      <p class="text-muted small mb-0">Set monthly limits, prevent overspending with automated threshold alerts, and auto-generate tailored allocations.</p>
+    </div>
+    
+    <div class="d-flex align-items-center gap-2">
+      <!-- Period Picker -->
+      <form method="GET" action="{{ url_for('budgets.index') }}" class="d-flex gap-2">
+        <select name="month" class="form-select form-select-sm auto-submit-period">
+          {% for m_num, m_name in month_names %}
+            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="year" class="form-select form-select-sm auto-submit-period">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <a href="{{ url_for('budgets.budget_set') }}" class="btn btn-sm btn-primary d-flex align-items-center gap-1">
+        <i class="bi bi-plus-lg"></i> Set Limit
+      </a>
+    </div>
+  </div>
+
+  <!-- Auto-generate suggested budget banner -->
+  <div class="card p-3 mb-4 border-primary-subtle bg-primary-subtle">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div>
+        <h6 class="fw-bold mb-1 text-primary"><i class="bi bi-magic me-1"></i> Rule-Based Budget Generator</h6>
+        <p class="small text-muted mb-0">
+          Automatically suggest optimal category limits for {{ selected_month_name }} {{ selected_year }} based on your 
+          <strong>{{ current_user.occupation }}</strong> profile and available monthly income.
+        </p>
+      </div>
+      <form method="POST" action="{{ url_for('budgets.auto_generate') }}" class="d-inline">
+        {{ auto_form.hidden_tag() }}
+        {{ auto_form.month(type="hidden") }}
+        {{ auto_form.year(type="hidden") }}
+        <button type="submit" class="btn btn-sm btn-primary text-nowrap fw-semibold shadow-sm">
+          <i class="bi bi-lightning-charge-fill me-1"></i> Generate Plan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Top Metric Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card stat-card stat-balance">
+        <span class="stat-label">Total Allocated Budget</span>
+        <div class="stat-value text-primary">{{ total_budgeted | currency }}</div>
+        <div class="stat-subtext text-muted">Across {{ budget_cards | length }} active categories</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card stat-card stat-expenses">
+        <span class="stat-label">Actual Spent on Budgeted</span>
+        <div class="stat-value text-danger">{{ total_spent | currency }}</div>
+        <div class="stat-subtext text-muted">Tracked in {{ selected_month_name }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card stat-card {% if total_remaining >= 0 %}stat-income{% else %}stat-expenses{% endif %}">
+        <span class="stat-label">Total Remaining Cushion</span>
+        <div class="stat-value {% if total_remaining >= 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ total_remaining | currency }}
+        </div>
+        <div class="stat-subtext text-muted">
+          {% if total_remaining >= 0 %}Safe within planned limits{% else %}Over overall budget!{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget Cards Grid -->
+  <div class="row g-4">
+    {% if budget_cards %}
+      {% for card in budget_cards %}
+        <div class="col-md-6 col-xl-4">
+          <div class="card h-100 shadow-sm border-{{ card.badge_class }}">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h5 class="fw-bold mb-0">{{ card.budget.category.name }}</h5>
+                  <span class="small text-muted">Monthly limit: {{ card.limit | currency }}</span>
+                </div>
+                <span class="badge badge-fin badge-fin-{{ card.badge_class }}">{{ card.status }}</span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="my-3">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                  <span>Spent: <strong>{{ card.spent | currency }}</strong></span>
+                  <span>{{ card.raw_percentage | percentage }}</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                  <div class="progress-bar progress-bar-{{ card.badge_class }}" role="progressbar" style="width: {{ card.percentage }}%;"></div>
+                </div>
+              </div>
+
+              <!-- Remaining -->
+              <div class="d-flex justify-content-between align-items-center pt-2 border-top small">
+                <span>
+                  {% if card.remaining >= 0 %}
+                    <span class="text-success"><i class="bi bi-shield-check"></i> {{ card.remaining | currency }} left</span>
+                  {% else %}
+                    <span class="text-danger"><i class="bi bi-exclamation-octagon"></i> Exceeded by {{ (card.remaining * -1) | currency }}</span>
+                  {% endif %}
+                </span>
+                <div class="d-flex gap-1">
+                  <a href="{{ url_for('budgets.budget_set', id=card.budget.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Edit Limit">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form method="POST" action="{{ url_for('budgets.budget_delete', budget_id=card.budget.id) }}" class="d-inline" onsubmit="return confirm('Remove this budget limit?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="card text-center py-5 shadow-sm">
+          <i class="bi bi-pie-chart fs-1 text-muted opacity-50 mb-3"></i>
+          <h5 class="fw-bold">No Budget Limits Configured</h5>
+          <p class="text-muted small mx-auto mb-4" style="max-width: 460px;">
+            Set up category budget limits to receive overspending warnings or use our rule-based generator to automatically suggest allocations.
+          </p>
+          <div class="d-flex justify-content-center gap-2">
+            <a href="{{ url_for('budgets.budget_set') }}" class="btn btn-primary btn-sm px-3">Set Individual Limit</a>
+            <form method="POST" action="{{ url_for('budgets.auto_generate') }}" class="d-inline">
+              {{ auto_form.hidden_tag() }}
+              {{ auto_form.month(type="hidden") }}
+              {{ auto_form.year(type="hidden") }}
+              <button type="submit" class="btn btn-outline-primary btn-sm px-3">Auto-Generate Plan</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FinWise AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <!-- Dashboard Header with Month Selector & Action Buttons -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Financial Overview</h2>
+      <p class="text-muted small mb-0">Track real-time cashflow, budget health, and AI recommendations for {{ selected_month_name }} {{ selected_year }}.</p>
+    </div>
+
+    <!-- Month & Year Selector -->
+    <div class="d-flex align-items-center gap-2">
+      <form method="GET" action="{{ url_for('dashboard.index') }}" class="d-flex gap-2">
+        <select name="month" class="form-select form-select-sm auto-submit-period">
+          {% for m_num, m_name in month_names %}
+            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+          {% endfor %}
+        </select>
+        <select name="year" class="form-select form-select-sm auto-submit-period">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <a href="{{ url_for('finance.income_add') }}" class="btn btn-sm btn-success d-flex align-items-center gap-1">
+        <i class="bi bi-plus-lg"></i> Income
+      </a>
+      <a href="{{ url_for('finance.expense_add') }}" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
+        <i class="bi bi-plus-lg"></i> Expense
+      </a>
+    </div>
+  </div>
+
+  <!-- Overspending Alerts Banner (if any) -->
+  {% if overbudget_alerts %}
+    <div class="alert alert-danger d-flex align-items-center gap-2 mb-4 shadow-sm" role="alert">
+      <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>
+      <div class="flex-grow-1">
+        <strong>Overspending Detected!</strong> You have exceeded budget limits in:
+        {% for alert in overbudget_alerts %}
+          <span class="badge bg-danger ms-1">{{ alert.category }} (+{{ alert.over | currency }})</span>
+        {% endfor %}
+      </div>
+      <a href="{{ url_for('budgets.index', month=selected_month, year=selected_year) }}" class="btn btn-sm btn-outline-danger">Review Budgets</a>
+    </div>
+  {% endif %}
+
+  <!-- Top 6 Stat Metric Cards -->
+  <div class="row g-3 mb-4">
+    <!-- Monthly Income -->
+    <div class="col-sm-6 col-xl-2">
+      <div class="card stat-card stat-income h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="stat-label">Income</span>
+          <div class="stat-icon"><i class="bi bi-arrow-up-right"></i></div>
+        </div>
+        <div class="stat-value text-success">{{ total_income | currency }}</div>
+        <div class="stat-subtext text-muted">Earned in {{ selected_month_name }}</div>
+      </div>
+    </div>
+
+    <!-- Monthly Expenses -->
+    <div class="col-sm-6 col-xl-2">
+      <div class="card stat-card stat-expenses h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="stat-label">Expenses</span>
+          <div class="stat-icon"><i class="bi bi-arrow-down-left"></i></div>
+        </div>
+        <div class="stat-value text-danger">{{ total_expenses | currency }}</div>
+        <div class="stat-subtext text-muted">Total outflow</div>
+      </div>
+    </div>
+
+    <!-- Net Cashflow / Available Balance -->
+    <div class="col-sm-6 col-xl-2">
+      <div class="card stat-card stat-balance h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="stat-label">Net Balance</span>
+          <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+        </div>
+        <div class="stat-value {% if net_balance >= 0 %}text-primary{% else %}text-danger{% endif %}">
+          {{ net_balance | currency }}
+        </div>
+        <div class="stat-subtext text-muted">Cash surplus / deficit</div>
+      </div>
+    </div>
+
+    <!-- Savings Rate -->
+    <div class="col-sm-6 col-xl-2">
+      <div class="card stat-card h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="stat-label">Savings Rate</span>
+          <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-percent"></i></div>
+        </div>
+        <div class="stat-value text-info">{{ savings_rate | percentage }}</div>
+        <div class="stat-subtext text-muted">
+          {% if savings_rate >= 20 %}<span class="text-success"><i class="bi bi-check-circle"></i> On Target</span>
+          {% else %}<span class="text-warning">Below 20% Goal</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Goal Savings Allocated -->
+    <div class="col-sm-6 col-xl-2">
+      <div class="card stat-card stat-savings h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="stat-label">Goal Savings</span>
+          <div class="stat-icon"><i class="bi bi-piggy-bank"></i></div>
+        </div>
+        <div class="stat-value text-purple" style="color: #8b5cf6;">{{ total_saved_in_goals | currency }}</div>
+        <div class="stat-subtext text-muted">Saved across goals</div>
+      </div>
+    </div>
+
+    <!-- Budget Utilization -->
+    <div class="col-sm-6 col-xl-2">
+      <div class="card stat-card h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="stat-label">Budget Used</span>
+          <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-pie-chart"></i></div>
+        </div>
+        <div class="stat-value {% if budget_utilization > 100 %}text-danger{% elif budget_utilization >= 90 %}text-warning{% else %}text-success{% endif %}">
+          {{ budget_utilization | percentage }}
+        </div>
+        <div class="stat-subtext text-muted">Overall utilization</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Insight & Health Banner -->
+  <div class="card ai-advisor-card p-3 p-md-4 mb-4 shadow-sm">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle p-3 d-flex align-items-center justify-content-center text-white" style="background: var(--ai-gradient); width: 54px; height: 54px;">
+          <i class="bi bi-stars fs-4"></i>
+        </div>
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <h5 class="fw-bold mb-0">FinWise AI Health Score: {{ financial_health_score }}/100</h5>
+            <span class="ai-badge">AI Intelligence</span>
+          </div>
+          <p class="text-muted small mb-0 mt-1">
+            {% if financial_health_score >= 80 %}
+              Excellent financial stability! Your savings rate and category discipline are aligned with wealth creation.
+            {% elif financial_health_score >= 60 %}
+              Moderate financial health. Discretionary spending can be optimized to build a 6-month emergency buffer.
+            {% else %}
+              Budget caution advised. Outflow exceeds safe thresholds; review discretionary categories.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      <div>
+        <a href="{{ url_for('advisor.index', month=selected_month, year=selected_year) }}" class="btn btn-sm btn-primary px-3 shadow-sm text-nowrap">
+          Open AI Advisor <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row g-4 mb-4">
+    <!-- Category Doughnut Breakdown -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-bold">Spending by Category</span>
+          <span class="small text-muted">{{ selected_month_name }} {{ selected_year }}</span>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 280px; position: relative;">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6-Month Income vs Expense Trend Bar Chart -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-bold">6-Month Cashflow Trend</span>
+          <span class="small text-muted">Income vs Outflow</span>
+        </div>
+        <div class="card-body" style="min-height: 280px; position: relative;">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budgets & Savings Goals Row -->
+  <div class="row g-4 mb-4">
+    <!-- Category Budget Progress -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-bold">Budget Limits</span>
+          <a href="{{ url_for('budgets.index', month=selected_month, year=selected_year) }}" class="small text-decoration-none">Manage All &rarr;</a>
+        </div>
+        <div class="card-body">
+          {% if budget_progress %}
+            {% for item in budget_progress[:5] %}
+              <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center small mb-1">
+                  <span class="fw-semibold">{{ item.category }}</span>
+                  <span>
+                    <strong>{{ item.spent | currency }}</strong> of {{ item.limit | currency }}
+                    <span class="badge badge-fin badge-fin-{{ item.status_class }} ms-1">{{ item.status_label }}</span>
+                  </span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar progress-bar-{{ item.status_class }}" role="progressbar" style="width: {{ item.percentage }}%;" aria-valuenow="{{ item.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-pie-chart fs-2 opacity-50 mb-2 d-block"></i>
+              <p class="small mb-2">No category budgets defined for {{ selected_month_name }} {{ selected_year }}.</p>
+              <a href="{{ url_for('budgets.index', month=selected_month, year=selected_year) }}" class="btn btn-sm btn-outline-primary">Set Category Budgets</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Savings Goals -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-bold">Active Savings Goals</span>
+          <a href="{{ url_for('goals.index') }}" class="small text-decoration-none">View All Goals &rarr;</a>
+        </div>
+        <div class="card-body">
+          {% if user_goals %}
+            {% for goal in user_goals %}
+              <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center small mb-1">
+                  <span class="fw-semibold">{{ goal.name }}</span>
+                  <span><strong>{{ goal.current_amount | currency }}</strong> / {{ goal.target_amount | currency }} ({{ goal.progress_percentage | percentage }})</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar progress-bar-success" role="progressbar" style="width: {{ goal.progress_percentage }}%;"></div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-bullseye fs-2 opacity-50 mb-2 d-block"></i>
+              <p class="small mb-2">No active savings goals created yet.</p>
+              <a href="{{ url_for('goals.goal_add') }}" class="btn btn-sm btn-outline-success">Create Savings Goal</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Transactions Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-bold">Recent Expenses</span>
+      <a href="{{ url_for('finance.expense_list') }}" class="small text-decoration-none">View All Transactions &rarr;</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-finwise table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Merchant / Note</th>
+            <th>Payment</th>
+            <th class="text-end">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if recent_expenses %}
+            {% for exp in recent_expenses %}
+              <tr>
+                <td class="text-muted small">{{ exp.date.strftime('%b %d, %Y') }}</td>
+                <td>
+                  <span class="badge" style="background-color: {{ exp.category.color if exp.category else '#6366f1' }}; color: #ffffff;">
+                    {{ exp.category.name if exp.category else 'Uncategorized' }}
+                  </span>
+                </td>
+                <td class="fw-medium">{{ exp.merchant or exp.notes or 'Expense' }}</td>
+                <td class="small text-muted">{{ exp.payment_method }}</td>
+                <td class="text-end fw-bold text-danger">-{{ exp.amount | currency }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">No transactions recorded yet. <a href="{{ url_for('finance.expense_add') }}">Add your first expense</a>.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const categoryLabels = {{ category_chart_labels | tojson }};
+    const categoryValues = {{ category_chart_values | tojson }};
+    const currencySymbol = {{ current_user.currency | tojson }};
+
+    initCategoryChart(categoryLabels, categoryValues, currencySymbol);
+
+    const trendLabels = {{ trend_labels | tojson }};
+    const trendIncome = {{ trend_income | tojson }};
+    const trendExpense = {{ trend_expense | tojson }};
+
+    initTrendChart(trendLabels, trendIncome, trendExpense, currencySymbol);
+  });
+</script>
+{% endblock %}
